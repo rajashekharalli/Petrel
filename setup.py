@@ -56,7 +56,7 @@ def build_petrel():
     f_url.close()
 
     with chdir('petrel/generated'):
-        subprocess.check_call(['thrift', '-gen', 'py', '-out', '.', '../storm.thrift'])
+        subprocess.check_call(['thrift', '-gen', 'py', '-out', '.', '../../storm.thrift'])
     os.remove('storm.thrift')
 
     # Build JVMPetrel.
