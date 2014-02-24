@@ -25,7 +25,7 @@ def add_file_to_jar(jar, directory, script=None, required=True):
         path = os.path.join(directory, script)
     else:
         path = directory
-    
+
     # Use glob() to allow for wildcards, e.g. in manifest.txt.
     path_list = glob.glob(path)
 
@@ -36,7 +36,7 @@ def add_file_to_jar(jar, directory, script=None, required=True):
     for this_path in path_list:
         with open(this_path, 'r') as f:
             # Assumption: Drop the path when adding to the jar.
-            add_to_jar(jar, os.path.basename(this_path), f.read())
+            add_to_jar(jar, this_path, f.read())
 
 def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None, logdir=None):
     """Build a StormTopology .jar which encapsulates the topology defined in
@@ -55,7 +55,7 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
     pip_options = config_yaml.get('petrel.pip_options', '')
 
     module_name, dummy, function_name = definition.rpartition('.')
-    
+
     topology_dir = os.getcwd()
 
     # Make a copy of the input "jvmpetrel" jar. This jar acts as a generic
@@ -66,7 +66,7 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
         raise ValueError("Error: Destination and source path are the same.")
     shutil.copy(source_jar_path, dest_jar_path)
     jar = zipfile.ZipFile(dest_jar_path, 'a', compression=zipfile.ZIP_DEFLATED)
-    
+
     added_path_entry = False
     try:
         # Add the files listed in manifest.txt to the jar.
@@ -83,12 +83,12 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
 petrel.user: %s
 petrel.host: %s
 ''' % (getpass.getuser(),socket.gethostname()))
-        
+
         # Also add the topology configuration to the jar.
         with open(config, 'r') as f:
             config_text = f.read()
         add_to_jar(jar, '__topology__.yaml', config_text)
-    
+
         # Call module_name/function_name to populate a Thrift topology object.
         builder = TopologyBuilder()
         module_dir = os.path.abspath(topology_dir)
@@ -141,7 +141,7 @@ petrel.host: %s
 def intercept(venv, execution_command, script, jar, pip_options, logdir):
     #create_virtualenv = 1 if execution_command == EmitterBase.DEFAULT_PYTHON else 0
     create_virtualenv = 1 if venv is None else 0
-    script_base_name = os.path.splitext(script)[0]
+    script_base_name = os.path.splitext(os.path.basename(script))[0]
     intercept_script = 'setup_%s.sh' % script_base_name
 
     # Bootstrap script that sets up the worker's Python environment.
@@ -216,7 +216,7 @@ if [[ "$unamestr" != 'Darwin' ]]; then
         # On Mac OS X, the "flock" command is not available
         create_new=1
         if [ "$has_flock" -eq "0" ]
-        then 
+        then
             if [ -d $VENV ];then
                 echo "Using existing venv: $VENV" >>$LOG 2>&1
                 shlock
@@ -252,7 +252,7 @@ if [[ "$unamestr" != 'Darwin' ]]; then
                 /bin/bash ./setup.sh $CREATE_VENV >>$VENV_LOG 2>&1
             fi
             if [ "$has_flock" -eq "0" ]
-            then 
+            then
                 unlock
             fi
         fi
@@ -275,6 +275,10 @@ if [[ "$unamestr" != 'Darwin' ]]; then
             unlock
         fi
     fi
+fi
+
+if [ -f ./env.sh ]; then
+    source ./env.sh
 fi
 
 ELAPSED=$(($SECONDS-$START))

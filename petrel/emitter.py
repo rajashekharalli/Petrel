@@ -11,13 +11,13 @@ class EmitterBase(object):
         # base part and turn it into a .py name for inclusion in the Storm
         # jar we create.
         path, basename = os.path.split(os.path.relpath(script))
-        assert len(path) == 0
+        # assert len(path) == 0
         script = '%s.py' % os.path.splitext(basename)[0]
         self.execution_command = self.DEFAULT_PYTHON
         self.script = script
         self._json = {}
         super(EmitterBase, self).__init__()
-    
+
     def declareOutputFields(declarer):
         raise NotImplementedError()
 
