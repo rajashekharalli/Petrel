@@ -73,9 +73,8 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
 
     added_path_entry = False
     petrel_dist = pkg_resources.get_distribution("petrel")
+    module_path = "%s/petrel" % petrel_dist.location
 
-    shutil.copy("%s/%s.egg" % (petrel_dist.location, petrel_dist.egg_name()),
-                "%s.egg" % petrel_dist.egg_name())
     try:
         # Add the files listed in manifest.txt to the jar.
         try:
@@ -95,6 +94,13 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
                 if '.pyc' in fn or '.git' in fn or 'env' in fn:
                     continue
                 add_file_to_jar(jar, fn)
+
+        shutil.copytree(module_path, 'petrel')
+        for fn in subprocess.check_output(['find', 'petrel', '-type', 'f']).split('\n'):
+            if not fn:
+                continue
+            fn = fn[2:]
+            add_file_to_jar(jar, fn)
 
         # Add user and machine information to the jar.
         add_to_jar(jar, '__submitter__.yaml', '''
@@ -153,6 +159,7 @@ petrel.host: %s
         topology = builder.write(io)
         add_to_jar(jar, 'topology.ser', io.getvalue())
     finally:
+        shutil.rmtree('petrel', True)
         jar.close()
         if added_path_entry:
             # Undo our sys.path change.
@@ -269,7 +276,6 @@ if [[ "$unamestr" != 'Darwin' ]]; then
                 pip install %(pip_options)s $f >>$VENV_LOG 2>&1
             done
 
-            pip install %(petrel_egg)s >>$VENV_LOG 2>&1
             if [ -f ./setup.sh ]; then
                 /bin/bash ./setup.sh $CREATE_VENV >>$VENV_LOG 2>&1
             fi
@@ -290,7 +296,6 @@ if [[ "$unamestr" != 'Darwin' ]]; then
         else
             echo "Updating pre-existing venv: $VENV" >>$LOG 2>&1
             source $VENV/bin/activate >>$LOG 2>&1
-            pip install %(petrel_egg)s >>$VENV_LOG 2>&1
             if [ -f ./setup.sh ]; then
                 /bin/bash ./setup.sh $CREATE_VENV >>$VENV_LOG 2>&1
             fi
@@ -319,7 +324,6 @@ exec python -m petrel.run $SCRIPT $LOG
     thrift_version=pkg_resources.get_distribution("thrift").version,
     pip_options=pip_options,
     petrel_version=pkg_resources.get_distribution("petrel").version,
-    petrel_egg="%s.egg" % (petrel_dist.egg_name())
     ))
 
     return '/bin/bash', intercept_script
