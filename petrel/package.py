@@ -84,7 +84,7 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
                         add_file_to_jar(jar, os.path.expandvars(fn.strip()))
         except IOError:
             # No manifest - just add everything in the source directory
-            for fn in subprocess.check_output(['find', '-type', 'f']).split('\n'):
+            for fn in subprocess.check_output(['find', '.', '-type', 'f']).split('\n'):
                 if not fn:
                     continue
                 fn = fn[2:]
