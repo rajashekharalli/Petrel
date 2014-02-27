@@ -72,6 +72,10 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
     jar = zipfile.ZipFile(dest_jar_path, 'a', compression=zipfile.ZIP_DEFLATED)
 
     added_path_entry = False
+    petrel_dist = pkg_resources.get_distribution("petrel")
+
+    shutil.copy("%s/%s.egg" % (petrel_dist.location, petrel_dist.egg_name()),
+                "%s.egg" % petrel_dist.egg_name())
     try:
         # Add the files listed in manifest.txt to the jar.
         try:
@@ -159,6 +163,8 @@ def intercept(venv, execution_command, script, jar, pip_options, logdir):
     create_virtualenv = 1 if venv is None else 0
     script_base_name = os.path.splitext(os.path.basename(script))[0]
     intercept_script = 'setup_%s.sh' % script_base_name
+
+    petrel_dist = pkg_resources.get_distribution("petrel")
 
     # Bootstrap script that sets up the worker's Python environment.
     add_to_jar(jar, intercept_script, '''#!/bin/bash
@@ -263,7 +269,7 @@ if [[ "$unamestr" != 'Darwin' ]]; then
                 pip install %(pip_options)s $f >>$VENV_LOG 2>&1
             done
 
-            pip install -e git+https://github.com/lucasmarshall/Petrel.git@master#egg=petrel >>$VENV_LOG 2>&1
+            pip install %(petrel_egg)s >>$VENV_LOG 2>&1
             if [ -f ./setup.sh ]; then
                 /bin/bash ./setup.sh $CREATE_VENV >>$VENV_LOG 2>&1
             fi
@@ -284,7 +290,7 @@ if [[ "$unamestr" != 'Darwin' ]]; then
         else
             echo "Updating pre-existing venv: $VENV" >>$LOG 2>&1
             source $VENV/bin/activate >>$LOG 2>&1
-            pip install -e git+https://github.com/lucasmarshall/Petrel.git@master#egg=petrel >>$VENV_LOG 2>&1
+            pip install %(petrel_egg)s >>$VENV_LOG 2>&1
             if [ -f ./setup.sh ]; then
                 /bin/bash ./setup.sh $CREATE_VENV >>$VENV_LOG 2>&1
             fi
@@ -313,6 +319,7 @@ exec python -m petrel.run $SCRIPT $LOG
     thrift_version=pkg_resources.get_distribution("thrift").version,
     pip_options=pip_options,
     petrel_version=pkg_resources.get_distribution("petrel").version,
+    petrel_egg="%s.egg" % (petrel_dist.egg_name())
     ))
 
     return '/bin/bash', intercept_script

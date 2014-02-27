@@ -31,7 +31,9 @@ def chdir(path):
 
 
 def get_storm_version():
-    return "0.9.0"
+    version = subprocess.check_output(['storm', 'version']).strip()
+    m = re.search('^\d\.\d\.\d', version)
+    return m.group(0)
 
 
 def get_version(argv):
