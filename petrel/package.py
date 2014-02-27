@@ -6,6 +6,7 @@ import socket
 import zipfile
 import glob
 import pkg_resources
+import subprocess
 from itertools import chain
 from cStringIO import StringIO
 
@@ -21,10 +22,13 @@ def add_to_jar(jar, name, data):
     jar.writestr(path, data)
 
 def add_file_to_jar(jar, directory, script=None, required=True):
+    # Add py files, not pyc files
     if script is not None:
         path = os.path.join(directory, script)
     else:
         path = directory
+
+    path.replace('.pyc', '.py')
 
     # Use glob() to allow for wildcards, e.g. in manifest.txt.
     path_list = glob.glob(path)
@@ -36,7 +40,7 @@ def add_file_to_jar(jar, directory, script=None, required=True):
     for this_path in path_list:
         with open(this_path, 'r') as f:
             # Assumption: Drop the path when adding to the jar.
-            add_to_jar(jar, this_path, f.read())
+            add_to_jar(jar, this_path.replace(directory + '/', ''), f.read())
 
 def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None, logdir=None):
     """Build a StormTopology .jar which encapsulates the topology defined in
@@ -70,13 +74,23 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
     added_path_entry = False
     try:
         # Add the files listed in manifest.txt to the jar.
-        with open(os.path.join(topology_dir, MANIFEST), 'r') as f:
-            for fn in f.readlines():
-                # Ignore blank and comment lines.
-                fn = fn.strip()
-                if len(fn) and not fn.startswith('#'):
+        try:
+            with open(os.path.join(topology_dir, MANIFEST), 'r') as f:
+                for fn in f.readlines():
+                    # Ignore blank and comment lines.
+                    fn = fn.strip()
+                    if len(fn) and not fn.startswith('#'):
 
-                    add_file_to_jar(jar, os.path.expandvars(fn.strip()))
+                        add_file_to_jar(jar, os.path.expandvars(fn.strip()))
+        except IOError:
+            # No manifest - just add everything in the source directory
+            for fn in subprocess.check_output(['find', '-type', 'f']).split('\n'):
+                if not fn:
+                    continue
+                fn = fn[2:]
+                if '.pyc' in fn or '.git' in fn or 'env' in fn:
+                    continue
+                add_file_to_jar(jar, fn)
 
         # Add user and machine information to the jar.
         add_to_jar(jar, '__submitter__.yaml', '''
@@ -95,15 +109,17 @@ petrel.host: %s
         if module_dir not in sys.path:
             sys.path[:0] = [ module_dir ]
             added_path_entry = True
-        module = __import__(module_name)
+        module =__import__(module_name, globals(), locals(), [function_name], -1)
         getattr(module, function_name)(builder)
 
         # Add the spout and bolt Python scripts to the jar. Create a
         # setup_<script>.sh for each Python script.
 
         # Add Python scripts and any other per-script resources.
+        cwd = os.getcwd()
         for k, v in chain(builder._spouts.iteritems(), builder._bolts.iteritems()):
-            add_file_to_jar(jar, topology_dir, v.script)
+            script_path = v.script.replace(cwd + '/', '')
+            add_file_to_jar(jar, topology_dir, script_path)
 
             # Create a bootstrap script.
             if venv is not None:
@@ -118,7 +134,7 @@ petrel.host: %s
                 builder._commons[k].parallelism_hint = int(parallelism.pop(k))
 
             v.execution_command, v.script = \
-                intercept(venv, v.execution_command, os.path.splitext(v.script)[0],
+                intercept(venv, v.execution_command, os.path.splitext(script_path)[0],
                           jar, pip_options, logdir)
 
         if len(parallelism):
@@ -148,7 +164,7 @@ def intercept(venv, execution_command, script, jar, pip_options, logdir):
     add_to_jar(jar, intercept_script, '''#!/bin/bash
 set -e
 SCRIPT=%(script)s
-LOG=%(logdir)s/petrel$$_$SCRIPT.log
+LOG=%(logdir)s/petrel$$_${SCRIPT//\//_}.log
 VENV_LOG=%(logdir)s/petrel$$_virtualenv.log
 echo "Beginning task setup" >>$LOG 2>&1
 
@@ -247,7 +263,7 @@ if [[ "$unamestr" != 'Darwin' ]]; then
                 pip install %(pip_options)s $f >>$VENV_LOG 2>&1
             done
 
-            easy_install petrel-*-py$PYVER.egg >>$VENV_LOG 2>&1
+            pip install -e git+https://github.com/lucasmarshall/Petrel.git@master#egg=petrel >>$VENV_LOG 2>&1
             if [ -f ./setup.sh ]; then
                 /bin/bash ./setup.sh $CREATE_VENV >>$VENV_LOG 2>&1
             fi
@@ -268,7 +284,7 @@ if [[ "$unamestr" != 'Darwin' ]]; then
         else
             echo "Updating pre-existing venv: $VENV" >>$LOG 2>&1
             source $VENV/bin/activate >>$LOG 2>&1
-            easy_install -U petrel-*-py$PYVER.egg >>$VENV_LOG 2>&1
+            pip install -e git+https://github.com/lucasmarshall/Petrel.git@master#egg=petrel >>$VENV_LOG 2>&1
             if [ -f ./setup.sh ]; then
                 /bin/bash ./setup.sh $CREATE_VENV >>$VENV_LOG 2>&1
             fi
@@ -296,6 +312,7 @@ exec python -m petrel.run $SCRIPT $LOG
     create_virtualenv=create_virtualenv,
     thrift_version=pkg_resources.get_distribution("thrift").version,
     pip_options=pip_options,
+    petrel_version=pkg_resources.get_distribution("petrel").version,
     ))
 
     return '/bin/bash', intercept_script
