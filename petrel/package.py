@@ -99,7 +99,6 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
         for fn in subprocess.check_output(['find', 'petrel', '-type', 'f']).split('\n'):
             if not fn:
                 continue
-            fn = fn[2:]
             add_file_to_jar(jar, fn)
 
         # Add user and machine information to the jar.
