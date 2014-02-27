@@ -91,7 +91,7 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
                 if not fn:
                     continue
                 fn = fn[2:]
-                if '.pyc' in fn or '.git' in fn or 'env' in fn:
+                if '.pyc' in fn or '.git/' in fn or 'env/' in fn:
                     continue
                 add_file_to_jar(jar, fn)
 
