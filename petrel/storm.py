@@ -114,7 +114,7 @@ def sendMsgToParent(msg):
             type(e).__name__,
             e.errno,
             str(e)))
-    
+
 # This function is probably obsolete with the addition of the new
 # reportError() function.
 # TODO: Consider getting rid of this function and call reportError() instead.
@@ -134,14 +134,14 @@ def sendFailureMsgToParent(msg):
     print >> old_stdout, msg
     print >> old_stdout, "end"
     storm_log.error('Sent failure message ("%s") to Storm', msg)
-    
+
 def sync():
     sendMsgToParent({'command':'sync'})
 
 def sendpid(heartbeatdir):
     pid = os.getpid()
     sendMsgToParent({'pid':pid})
-    open(heartbeatdir + "/" + str(pid), "w").close()    
+    open(heartbeatdir + "/" + str(pid), "w").close()
 
 def emit(*args, **kwargs):
     result = __emit(*args, **kwargs)
@@ -181,7 +181,7 @@ def emitManyBolt(tuples, stream=None, anchors = [], directTask=None):
         m["stream"] = stream
     if directTask is not None:
         m["task"] = directTask
-    
+
     lines = []
     for tup in tuples:
         m["tuple"] = tup
@@ -205,7 +205,7 @@ def emitBolt(tup, stream=None, anchors = [], directTask=None, need_task_ids=Fals
         m["task"] = directTask
     sendMsgToParent(m)
     return need_task_ids
-    
+
 def emitManySpout(tuples, stream=None, id=None, directTask=None):
     m = {
         "command": "emit",
@@ -284,11 +284,11 @@ class Tuple(object):
     def __eq__(self, other):
         if not isinstance(other, Tuple):
             return False
-        
+
         for k in self.__slots__:
             if getattr(self, k) != getattr(other, k):
                 return False
-            
+
         return True
 
     def __ne__(self, other):
@@ -302,11 +302,11 @@ class Tuple(object):
 class Task(object):
     def shared_initialize(self):
         conf, context = initComponent()
-        
+
         # These values are only available with a patched version of Storm.
         self.task_index = context.get('taskIndex', -1)
         self.worker_port = context.get('workerPort', -1)
-        
+
         self.initialize(conf, context)
 
     def report_exception(self, base_message, exception):
@@ -323,7 +323,7 @@ class Task(object):
         #message = '%s: %s (pid %d) on %s failed with %s: %s' % parameters
         message = '__'.join(str(p).replace('.', '_') for p in parameters)
         sendFailureMsgToParent(message)
-        
+
         # Sleep for a few seconds to try and ensure Storm reads this message
         # before we terminate. If it does, then our message above will appear in
         # the Storm UI.
@@ -355,7 +355,6 @@ class Bolt(Task):
                 self.process(tup)
                 if profiler is not None: profiler.post_process()
         except Exception, e:
-            self.report_exception('E_BOLTFAILED', e)
             storm_log.exception('Caught exception in Bolt.run')
             if 'tup' in locals():
                 # Only print the first 2000 characters of the tuple, otherwise
@@ -364,6 +363,7 @@ class Bolt(Task):
                 storm_log.error(
                     'The error occurred while processing this tuple: %s',
                     repr(tup.values)[:2000])
+            raise
 
 class BasicBolt(Task):
     def __init__(self):
@@ -395,7 +395,7 @@ class BasicBolt(Task):
                 ack(tup)
                 if profiler is not None: profiler.post_ack()
         except Exception, e:
-            self.report_exception('E_BOLTFAILED', e)
+            fail(tup)
             storm_log.exception('Caught exception in BasicBolt.run')
             if 'tup' in locals():
                 # Only print the first 2000 characters of the tuple, otherwise
@@ -404,6 +404,7 @@ class BasicBolt(Task):
                 storm_log.error(
                     'The error occurred while processing this tuple: %s',
                     repr(tup.values)[:2000])
+            raise
 
 class Spout(Task):
     def initialize(self, conf, context):
@@ -534,7 +535,7 @@ class LogStream(object):
     """
     def __init__(self, logger):
         self.logger = logger
- 
+
     def write(self, message):
         for line in message.split('\n'):
             self.logger.error(line)
