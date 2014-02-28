@@ -15,6 +15,8 @@ PACKAGE = "petrel"
 
 PETREL_VERSION = '0.1'
 
+STORM_VERSION = '0.9.0'
+
 
 @contextlib.contextmanager
 def chdir(path):
@@ -31,6 +33,7 @@ def chdir(path):
 
 
 def get_storm_version():
+    return STORM_VERSION
     version = subprocess.check_output(['storm', 'version']).strip()
     m = re.search('^\d\.\d\.\d', version)
     return m.group(0)
