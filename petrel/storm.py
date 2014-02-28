@@ -435,8 +435,8 @@ class Spout(Task):
                     self.fail(msg["id"])
                 sync()
         except Exception, e:
-            self.report_exception('E_SPOUTFAILED', e)
             storm_log.exception('Caught exception in Spout.run: %s', str(e))
+            raise
 
 class BoltProfiler(object):
     """Helper class for Bolt. Implements some simple log-based counters for
