@@ -384,6 +384,7 @@ class BasicBolt(Task):
         global ANCHOR_TUPLE
         self.shared_initialize()
         profiler = self.profiler
+        tup = False
         try:
             while True:
                 if profiler is not None: profiler.pre_read()
@@ -395,7 +396,8 @@ class BasicBolt(Task):
                 ack(tup)
                 if profiler is not None: profiler.post_ack()
         except Exception, e:
-            fail(tup)
+            if tup:
+                fail(tup)
             storm_log.exception('Caught exception in BasicBolt.run')
             if 'tup' in locals():
                 # Only print the first 2000 characters of the tuple, otherwise
