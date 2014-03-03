@@ -363,6 +363,7 @@ class Bolt(Task):
                 storm_log.error(
                     'The error occurred while processing this tuple: %s',
                     repr(tup.values)[:2000])
+            reportError("%s\n%s" % (str(e), traceback.format_exc()))
             raise
 
 class BasicBolt(Task):
@@ -406,6 +407,7 @@ class BasicBolt(Task):
                 storm_log.error(
                     'The error occurred while processing this tuple: %s',
                     repr(tup.values)[:2000])
+            reportError("%s\n%s" % (str(e), traceback.format_exc()))
             raise
 
 class Spout(Task):
@@ -438,6 +440,7 @@ class Spout(Task):
                 sync()
         except Exception, e:
             storm_log.exception('Caught exception in Spout.run: %s', str(e))
+            reportError("%s\n%s" % (str(e), traceback.format_exc()))
             raise
 
 class BoltProfiler(object):
