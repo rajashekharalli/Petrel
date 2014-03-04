@@ -347,24 +347,24 @@ class Bolt(Task):
         MODE = Bolt
         self.shared_initialize()
         profiler = self.profiler
-        try:
-            while True:
+        while True:
+            try:
                 if profiler is not None: profiler.pre_read()
                 tup = readTuple()
                 if profiler is not None: profiler.post_read()
                 self.process(tup)
                 if profiler is not None: profiler.post_process()
-        except Exception, e:
-            storm_log.exception('Caught exception in Bolt.run')
-            if 'tup' in locals():
-                # Only print the first 2000 characters of the tuple, otherwise
-                # the message may be too long for certain handlers (e.g.
-                # SysLogHandler).
-                storm_log.error(
-                    'The error occurred while processing this tuple: %s',
-                    repr(tup.values)[:2000])
-            reportError("%s\n%s" % (str(e), traceback.format_exc()))
-            raise
+            except Exception, e:
+                storm_log.exception('Caught exception in Bolt.run')
+                if 'tup' in locals():
+                    # Only print the first 2000 characters of the tuple, otherwise
+                    # the message may be too long for certain handlers (e.g.
+                    # SysLogHandler).
+                    storm_log.error(
+                        'The error occurred while processing this tuple: %s',
+                        repr(tup.values)[:2000])
+                reportError("%s\n%s" % (str(e), traceback.format_exc()))
+                raise
 
 class BasicBolt(Task):
     def __init__(self):
@@ -386,8 +386,8 @@ class BasicBolt(Task):
         self.shared_initialize()
         profiler = self.profiler
         tup = False
-        try:
-            while True:
+        while True:
+            try:
                 if profiler is not None: profiler.pre_read()
                 tup = readTuple()
                 if profiler is not None: profiler.post_read()
@@ -396,19 +396,19 @@ class BasicBolt(Task):
                 if profiler is not None: profiler.post_process()
                 ack(tup)
                 if profiler is not None: profiler.post_ack()
-        except Exception, e:
-            if tup:
-                fail(tup)
-            storm_log.exception('Caught exception in BasicBolt.run')
-            if 'tup' in locals():
-                # Only print the first 2000 characters of the tuple, otherwise
-                # I've seen errors because the message is too long for
-                # SysLogHandler.
-                storm_log.error(
-                    'The error occurred while processing this tuple: %s',
-                    repr(tup.values)[:2000])
-            reportError("%s\n%s" % (str(e), traceback.format_exc()))
-            raise
+            except Exception, e:
+                if tup:
+                    fail(tup)
+                storm_log.exception('Caught exception in BasicBolt.run')
+                if 'tup' in locals():
+                    # Only print the first 2000 characters of the tuple, otherwise
+                    # I've seen errors because the message is too long for
+                    # SysLogHandler.
+                    storm_log.error(
+                        'The error occurred while processing this tuple: %s',
+                        repr(tup.values)[:2000])
+                reportError("%s\n%s" % (str(e), traceback.format_exc()))
+                raise
 
 class Spout(Task):
     def initialize(self, conf, context):
@@ -427,8 +427,8 @@ class Spout(Task):
         global MODE
         MODE = Spout
         self.shared_initialize()
-        try:
-            while True:
+        while True:
+            try:
                 msg = readCommand()
                 command = msg["command"]
                 if command == "next":
@@ -438,10 +438,10 @@ class Spout(Task):
                 elif command == "fail":
                     self.fail(msg["id"])
                 sync()
-        except Exception, e:
-            storm_log.exception('Caught exception in Spout.run: %s', str(e))
-            reportError("%s\n%s" % (str(e), traceback.format_exc()))
-            raise
+            except Exception, e:
+                storm_log.exception('Caught exception in Spout.run: %s', str(e))
+                reportError("%s\n%s" % (str(e), traceback.format_exc()))
+                raise
 
 class BoltProfiler(object):
     """Helper class for Bolt. Implements some simple log-based counters for
