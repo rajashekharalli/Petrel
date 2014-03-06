@@ -3,6 +3,7 @@
 # Packages
 *.egg
 *.egg-info
+*.jar
 dist
 build
 eggs
@@ -24,3 +25,5 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+jvmpetrel/target

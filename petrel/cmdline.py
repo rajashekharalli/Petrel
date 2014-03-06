@@ -1,17 +1,34 @@
+import contextlib
 import os
+import os.path
 import sys
 import argparse
 import traceback
+import shutil
 import subprocess
 import re
+import urllib2
 
 import pkg_resources
-import yaml
 
 from .util import read_yaml
 from .package import build_jar
-from .emitter import EmitterBase
 from .status import status
+
+
+@contextlib.contextmanager
+def chdir(path):
+    """A context manager which changes the working directory to the given
+    path, and then changes it back to its previous value on exit.
+
+    """
+    prev_cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
+
 
 def get_storm_version():
     version = subprocess.check_output(['storm', 'version']).strip()
@@ -21,10 +38,30 @@ def get_storm_version():
 
 def get_sourcejar():
     storm_version = get_storm_version()
-    sourcejar = pkg_resources.resource_filename(
-        pkg_resources.Requirement.parse('petrel'),
-        'petrel/generated/storm-petrel-%s-SNAPSHOT.jar' % storm_version)
+    sourcejar = '/tmp/petrel/storm-petrel-%s-SNAPSHOT.jar' % storm_version
+
+    if not os.path.isfile(sourcejar):
+        build_petrel_jar()
+
     return sourcejar
+
+
+def build_petrel_jar():
+    version = get_storm_version()
+
+    if os.path.isdir('/tmp/petrel'):
+        shutil.rmtree('/tmp/petrel')
+    os.mkdir('/tmp/petrel')
+
+    # Build JVMPetrel.
+    jvmdir = pkg_resources.resource_filename(pkg_resources.Requirement.parse('petrel'), 'jvmpetrel')
+    with chdir(jvmdir):
+        subprocess.check_call(['mvn', '-Dstorm_version=%s' % version, 'assembly:assembly'])
+
+    shutil.copyfile(
+        '%s/target/storm-petrel-%s-SNAPSHOT.jar' % (jvmdir, version),
+        '/tmp/petrel/storm-petrel-%s-SNAPSHOT.jar' % version)
+
 
 def submit(sourcejar, destjar, config, venv, name, definition, logdir, extrastormcp):
     # Build a topology jar and submit it to Storm.
