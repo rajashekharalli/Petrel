@@ -211,6 +211,9 @@ fi
 # error and fail before continuing.
 python$PYVER -c "print" >>$LOG 2>&1
 
+if [ -f ./env.sh ]; then
+    source ./env.sh
+fi
 
 unamestr=`uname`
 if [[ "$unamestr" != 'Darwin' ]]; then
@@ -301,10 +304,6 @@ if [[ "$unamestr" != 'Darwin' ]]; then
             unlock
         fi
     fi
-fi
-
-if [ -f ./env.sh ]; then
-    source ./env.sh
 fi
 
 ELAPSED=$(($SECONDS-$START))
