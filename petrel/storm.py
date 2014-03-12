@@ -354,7 +354,7 @@ class Bolt(Task):
                 if profiler is not None: profiler.post_read()
                 self.process(tup)
                 if profiler is not None: profiler.post_process()
-            except Exception, e:
+            except Exception as e:
                 storm_log.exception('Caught exception in Bolt.run')
                 if 'tup' in locals():
                     # Only print the first 2000 characters of the tuple, otherwise
@@ -396,7 +396,7 @@ class BasicBolt(Task):
                 if profiler is not None: profiler.post_process()
                 ack(tup)
                 if profiler is not None: profiler.post_ack()
-            except Exception, e:
+            except Exception as e:
                 if tup:
                     fail(tup)
                 storm_log.exception('Caught exception in BasicBolt.run')
@@ -438,7 +438,7 @@ class Spout(Task):
                 elif command == "fail":
                     self.fail(msg["id"])
                 sync()
-            except Exception, e:
+            except Exception as e:
                 storm_log.exception('Caught exception in Spout.run: %s', str(e))
                 reportError("%s\n%s" % (str(e), traceback.format_exc()))
                 raise
