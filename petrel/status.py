@@ -27,18 +27,22 @@ def print_topology_status(client, topology, worker, port):
     records = []
     print 'id,uptime,host,port,component,emitted,transferred,acked,failed,num_errors'
     info = client.getTopologyInfo(topology.id)
-    for i, es in enumerate(info.tasks):
+    executors = hasattr(info, 'tasks') and info.tasks or info.executors
+    for i, es in enumerate(executors):
         emit = True
         host = es.host.split('.')[0]
         if worker is not None and host != worker:
             emit = False
         if port is not None and es.port != port:
             emit = False
-        
+
         if emit:
             record = {}
+            # next two ternary ops use truthy return when <0.9, falsy return for storm 0.9
+            component_id = es.task_id if hasattr(es, 'task_id') else es.component_id
+            errors = es.errors if hasattr(es, 'errors') else info.errors[component_id]
             record['columns'] = [
-                es.task_id,
+                component_id,
                 es.uptime_secs,
                 es.host.split('.')[0],
                 es.port,
@@ -47,17 +51,17 @@ def print_topology_status(client, topology, worker, port):
                 get_statistic(es, 'transferred'),
                 get_statistic(es, 'acked'),
                 get_statistic(es, 'failed'),
-                len(es.errors)
+                len(errors)
             ]
-            if len(es.errors):
+            if len(errors):
                 msg = StringIO()
-                for i, e in enumerate(es.errors):
+                for i, e in enumerate(errors):
                     print >>msg, 'Error #%d (%s)' % (
-                        i+1, (datetime.datetime.fromtimestamp(es.errors[i].error_time_secs).strftime('%Y/%m/%d %H:%M:%S')))
+                        i+1, (datetime.datetime.fromtimestamp(errors[i].error_time_secs).strftime('%Y/%m/%d %H:%M:%S')))
                     print >>msg
-                    print >>msg, es.errors[i].error
+                    print >>msg, errors[i].error
                 record['error'] = msg.getvalue()
-                
+
             records.append(record)
 
     records.sort(key=lambda r: (r['columns'][0], r['columns'][1]))
@@ -83,3 +87,4 @@ def status(nimbus, topology, worker, port):
                 print_topology_status(client, running_topology, worker, port)
     finally:
         transport.close()
+
