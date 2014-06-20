@@ -167,10 +167,13 @@ def __emit(*args, **kwargs):
     elif MODE == Spout:
         return emitSpout(*args, **kwargs)
 
-def emitManyBolt(tuples, stream=None, anchors = [], directTask=None):
+def emitManyBolt(tuples, stream=None, anchors=None, directTask=None):
     global ANCHOR_TUPLE
-    if ANCHOR_TUPLE is not None:
-        anchors = [ANCHOR_TUPLE]
+    if anchors is None:
+        if ANCHOR_TUPLE is None:
+            anchors = []
+        elif ANCHOR_TUPLE is not None:
+            anchors = [ANCHOR_TUPLE]
     m = {
         "command": "emit",
         "anchors": [a.id for a in anchors],
@@ -189,10 +192,13 @@ def emitManyBolt(tuples, stream=None, anchors = [], directTask=None):
         lines.append('end')
     print >> old_stdout, '\n'.join(lines)
 
-def emitBolt(tup, stream=None, anchors = [], directTask=None, need_task_ids=False):
+def emitBolt(tup, stream=None, anchors=None, directTask=None, need_task_ids=False):
     global ANCHOR_TUPLE
-    if ANCHOR_TUPLE is not None:
-        anchors = [ANCHOR_TUPLE]
+    if anchors is None:
+        if ANCHOR_TUPLE is None:
+            anchors = []
+        elif ANCHOR_TUPLE is not None:
+            anchors = [ANCHOR_TUPLE]
     m = {
         "command": "emit",
         "anchors": [a.id for a in anchors],
