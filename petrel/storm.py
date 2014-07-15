@@ -410,9 +410,14 @@ class BasicBolt(Task):
                     # Only print the first 2000 characters of the tuple, otherwise
                     # I've seen errors because the message is too long for
                     # SysLogHandler.
+
+                    printable_err = tup
+                    if hasattr(tup, 'values'):
+                        printable_err = tup.values
                     storm_log.error(
                         'The error occurred while processing this tuple: %s',
-                        repr(tup.values)[:2000])
+                        repr(printable_err)[:2000])
+
                 reportError("%s\n%s" % (str(e), traceback.format_exc()))
                 raise
 
