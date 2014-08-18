@@ -52,9 +52,13 @@ def build_petrel_jar():
     if os.path.isdir('/tmp/petrel'):
         shutil.rmtree('/tmp/petrel')
     os.mkdir('/tmp/petrel')
+    if os.path.isdir('/tmp/petrel_compile'):
+        shutil.rmtree('/tmp/petrel_compile')
 
     # Build JVMPetrel.
-    jvmdir = pkg_resources.resource_filename(pkg_resources.Requirement.parse('petrel'), 'jvmpetrel')
+    petrel_location = pkg_resources.get_distribution('petrel').location
+    shutil.copytree(petrel_location, '/tmp/petrel_compile')
+    jvmdir = '/tmp/petrel_compile/jvmpetrel'
     with chdir(jvmdir):
         subprocess.check_call(['mvn', '-Dstorm_version=%s' % version, 'assembly:assembly'])
 

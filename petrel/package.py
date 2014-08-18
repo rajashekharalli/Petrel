@@ -119,8 +119,8 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
                     continue
                 add_file_to_jar(jar, fn, strip_dir=False)
 
-        shutil.copytree(module_path, 'petrel')
-        add_dir_to_jar(jar, 'petrel')
+        shutil.copytree(module_path, '/tmp/petrel_tmp')
+        add_dir_to_jar(jar, '/tmp/petrel_tmp')
 
         # Add user and machine information to the jar.
         add_to_jar(jar, '__submitter__.yaml', '''
@@ -179,7 +179,7 @@ petrel.host: %s
         topology = builder.write(io)
         add_to_jar(jar, 'topology.ser', io.getvalue())
     finally:
-        shutil.rmtree('petrel', True)
+        shutil.rmtree('/tmp/petrel_tmp', True)
         jar.close()
         if added_path_entry:
             # Undo our sys.path change.
