@@ -107,7 +107,8 @@ def build_jar(source_jar_path, dest_jar_path, config, venv=None, definition=None
                     # Ignore blank and comment lines.
                     fn = fn.strip()
                     if len(fn) and not fn.startswith('#'):
-
+                        if fn == '__all__': # Magic name that includes everything in the source directory
+                            raise IOError('include all')
                         add_file_to_jar(jar, os.path.expandvars(fn.strip()))
         except IOError:
             # No manifest - just add everything in the source directory
