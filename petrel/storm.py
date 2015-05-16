@@ -18,7 +18,7 @@ try:
 except ImportError:
     import json
 
-storm_log = logging.getLogger('storm')
+storm_log = logging.getLogger('tripwatch.storm')
 
 TUPLE_PROFILING = False
 
@@ -70,7 +70,7 @@ def readMsg():
             """
             yield line
     msg = ''.join('%s\n' % line for line in read_message_lines())
-    raise StormIPCException(msg)
+    storm.log(msg)
     return json_decode(msg)
 
 MODE = None
