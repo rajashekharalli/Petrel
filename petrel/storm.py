@@ -53,6 +53,7 @@ def readMsg():
             # worker has died, and we would be reading an infinite series of blank
             # lines. Throw an error to halt processing, otherwise the task will
             # use 100% CPU and will quickly consume a huge amount of RAM.
+            """
             if MAX_MESSAGE_SIZE is not None and message_size > MAX_MESSAGE_SIZE:
                 raise StormIPCException('Message exceeds MAX_MESSAGE_SIZE -- assuming this is an error')
 
@@ -66,6 +67,7 @@ def readMsg():
                     raise StormIPCException('Message exceeds 100 lines -- assuming this is an error')
                 if count_blank > 0:
                     storm_log.debug('Message line #%d: %s', i_line + 1, line)
+            """
             yield line
     msg = ''.join('%s\n' % line for line in read_message_lines())
     return json_decode(msg)
