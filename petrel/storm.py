@@ -70,7 +70,7 @@ def readMsg():
             """
             yield line
     msg = ''.join('%s\n' % line for line in read_message_lines())
-    storm.log(msg)
+    storm_log.info(msg)
     return json_decode(msg)
 
 MODE = None
